@@ -50,12 +50,14 @@ export async function seed({ test = false } = {}) {
       'Smash', 'Hayate', 'Raider 150', 'Thunder 125',
     ];
     for (const t of typeNames) {
-      await conn.query('INSERT IGNORE INTO types (name) VALUES (?)', [t]);
+      await conn.query('INSERT IGNORE INTO types (name) VALUES (?)', [t.trim()]);
     }
+    await conn.query('UPDATE types SET name = TRIM(name)');
     const modelNames = [
       'Beat 110', 'Beat 125', 'Vario 125', 'Vario 160', 'Scoopy 110', 'PCX 160',
       'ADV 160', 'NMAX 155', 'Lexi 125', 'Lexi LX 155', 'Aerox 155', 'Fazzio 125',
       'Mio M3', 'Mio Soul', 'Satria F150', 'GSX-R150',
+      'Benang Putih', 'Benang Merah', 'Benang Biru', 'Benang Hitam', 'Default', 'Universal',
     ];
     for (const m of modelNames) {
       await conn.query('INSERT IGNORE INTO models (name) VALUES (?)', [m]);
@@ -105,6 +107,31 @@ export async function seed({ test = false } = {}) {
         );
       }
     }
+
+
+    const { VARIANT_IMAGES } = await import('./productImages.js');
+    const variantModels = ['Benang Putih', 'Benang Merah', 'Benang Biru', 'Benang Hitam', 'Default', 'Universal'];
+    const [typeRows] = await conn.query('SELECT name FROM types ORDER BY id');
+    const [comboRows] = await conn.query(
+      `SELECT TRIM(type) AS type, TRIM(model) AS model FROM products WHERE deleted_at IS NULL`
+    );
+    const existingSet = new Set(comboRows.map((r) => `${r.type}|${r.model}`));
+    let catalogCount = 0;
+    for (const t of typeRows) {
+      const type = t.name.trim();
+      for (const variant of variantModels) {
+        if (existingSet.has(`${type}|${variant}`)) continue;
+        const sku = 'SJ-' + type.replace(/[^a-zA-Z0-9]+/g, '').toUpperCase().slice(0, 24) + '-' + variant.replace(/[^a-zA-Z0-9]+/g, '').toUpperCase();
+        const name = `Sarung Jok ${type} ${variant}`;
+        await conn.query(
+          `INSERT INTO products (sku, name, type, model, category_id, unit, purchase_price, selling_price, current_stock, image)
+           VALUES (?,?,?,?,?,?,?,?,?,?)`,
+          [sku, name, type, variant, catIds[0], 'pcs', 0, 0, 0, VARIANT_IMAGES[variant]]
+        );
+        catalogCount++;
+      }
+    }
+    console.log(`Seed katalog produk (type x varian): ${catalogCount} produk ditambahkan.`);
 
     console.log('Seed data: kategori, supplier, produk selesai.');
   } finally {
