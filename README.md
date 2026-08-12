@@ -50,3 +50,6 @@ npm test --prefix server
 - Validasi stok memakai `SELECT … FOR UPDATE` (anti race condition)
 - Setiap jual/beli mencatat `stock_mutations` (`qty_change` + `stock_after`)
 - Format invoice: `INV-YYYYMMDD-XXX` / `PO-YYYYMMDD-XXX`
+
+## Deploy
+- Produksi (otomatis dari GitHub `main`): https://kasir-pro-agusmbie-5196s-projects.vercel.app
