@@ -136,7 +136,7 @@ export default function Barang() {
                   <div className="small text-muted">{p.sku} · {p.category_name || '-'}</div>
                   <div className="small text-muted">{(p.type ? p.type + (p.model ? ' — ' + p.model : '') : (p.model || '')) || '-'}</div>
                 </div>
-                <span className={`badge ${p.current_stock < 10 ? 'bg-danger' : 'bg-success'}`}>Stok {p.current_stock}</span>
+                <span className={`fw-bold ${p.current_stock < 10 ? 'text-danger' : 'text-success'}`}>Stok {p.current_stock}</span>
               </div>
               <div className="d-flex justify-content-between mt-2 small">
                 <span className="text-muted">Beli {rupiah(p.purchase_price)}</span>
@@ -168,7 +168,7 @@ export default function Barang() {
                   </td>
                   <td>{p.name}</td><td>{p.type || '-'}</td><td>{p.model || '-'}</td><td>{p.category_name || '-'}</td>
                   <td>{rupiah(p.purchase_price)}</td><td>{rupiah(p.selling_price)}</td>
-                  <td><span className={`badge ${p.current_stock < 10 ? 'bg-danger' : 'bg-success'}`}>{p.current_stock}</span></td>
+                  <td><span className={`fw-bold ${p.current_stock < 10 ? 'text-danger' : 'text-success'}`}>{p.current_stock}</span></td>
                   {isAdmin && (
                     <td className="text-end text-nowrap">
                           <button className="btn btn-sm btn-outline-primary me-1" onClick={() => openEdit(p)}><i className="bi bi-pencil" /></button>
