@@ -10,6 +10,7 @@ export function dbConfig(database) {
     waitForConnections: true,
     connectionLimit: 10,
     decimalNumbers: true,
+    ...(process.env.DB_SSL === '1' ? { ssl: { rejectUnauthorized: false } } : {}),
   };
 }
 
