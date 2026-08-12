@@ -6,3 +6,8 @@ dist/
 
 # Backup database lokal
 server/sql/backups/
+.vercel
+.env*
+
+# Vercel lokal (berisi env)
+.vercel/
