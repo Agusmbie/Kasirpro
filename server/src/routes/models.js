@@ -11,15 +11,29 @@ router.get('/', authenticate, wrap(async (req, res) => {
 }));
 
 router.post('/', authenticate, requireRole('admin'), wrap(async (req, res) => {
-  const { name } = req.body || {};
+  const { name, purchase_price, selling_price } = req.body || {};
   if (!name) throw new AppError(400, 'Nama model wajib diisi');
   try {
-    const [r] = await pool.query('INSERT INTO models (name) VALUES (?)', [name]);
-    res.status(201).json({ id: r.insertId, name });
+    const [r] = await pool.query(
+      'INSERT INTO models (name, purchase_price, selling_price) VALUES (?, ?, ?)',
+      [name, Number(purchase_price || 0), Number(selling_price || 0)]
+    );
+    res.status(201).json({ id: r.insertId, name, purchase_price: Number(purchase_price || 0), selling_price: Number(selling_price || 0) });
   } catch (e) {
     if (e.code === 'ER_DUP_ENTRY') throw new AppError(409, 'Model sudah ada');
     throw e;
   }
+}));
+
+router.put('/:id', authenticate, requireRole('admin'), wrap(async (req, res) => {
+  const { name, purchase_price, selling_price } = req.body || {};
+  if (!name) throw new AppError(400, 'Nama model wajib diisi');
+  const [r] = await pool.query(
+    'UPDATE models SET name = ?, purchase_price = ?, selling_price = ? WHERE id = ?',
+    [name, Number(purchase_price || 0), Number(selling_price || 0), req.params.id]
+  );
+  if (r.affectedRows === 0) throw new AppError(404, 'Model tidak ditemukan');
+  res.json({ id: Number(req.params.id), name, purchase_price: Number(purchase_price || 0), selling_price: Number(selling_price || 0) });
 }));
 
 router.delete('/:id', authenticate, requireRole('admin'), wrap(async (req, res) => {

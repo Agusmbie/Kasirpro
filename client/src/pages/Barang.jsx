@@ -60,6 +60,29 @@ export default function Barang() {
     return `${prefix}-${String(next).padStart(3, '0')}`;
   }
 
+  function priceFrom(item) {
+    return {
+      purchase_price: item?.purchase_price != null ? item.purchase_price : '',
+      selling_price: item?.selling_price != null ? item.selling_price : '',
+    };
+  }
+
+  function applyTypePrices(name) {
+    if (editId) return;
+    const t = types.find((x) => x.name === name);
+    if (t && (t.purchase_price != null || t.selling_price != null)) {
+      setForm((f) => ({ ...f, ...priceFrom(t) }));
+    }
+  }
+
+  function applyModelPrices(name) {
+    if (editId) return;
+    const m = models.find((x) => x.name === name);
+    if (m && (m.purchase_price != null || m.selling_price != null)) {
+      setForm((f) => ({ ...f, ...priceFrom(m) }));
+    }
+  }
+
   function openNew() { setEditId(null); setForm(empty); setError(''); setSkuTouched(false); setShow(true); }
   function openEdit(p) {
     setEditId(p.id);
@@ -226,7 +249,11 @@ export default function Barang() {
                       <select
                         className="form-select"
                         value={form.type && types.some((t) => t.name === form.type) ? form.type : form.type ? '__other__' : ''}
-                        onChange={(e) => setForm((f) => ({ ...f, type: e.target.value === '__other__' ? f.type : e.target.value }))}
+                        onChange={(e) => {
+                          const val = e.target.value === '__other__' ? form.type : e.target.value;
+                          setForm((f) => ({ ...f, type: val }));
+                          if (val) applyTypePrices(val);
+                        }}
                       >
                         <option value="">Pilih type...</option>
                         {types.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
@@ -241,7 +268,11 @@ export default function Barang() {
                       <select
                         className="form-select"
                         value={form.model && models.some((m) => m.name === form.model) ? form.model : form.model ? '__other__' : ''}
-                        onChange={(e) => setForm((f) => ({ ...f, model: e.target.value === '__other__' ? f.model : e.target.value }))}
+                        onChange={(e) => {
+                          const val = e.target.value === '__other__' ? form.model : e.target.value;
+                          setForm((f) => ({ ...f, model: val }));
+                          if (val) applyModelPrices(val);
+                        }}
                       >
                         <option value="">Pilih model...</option>
                         {models.map((m) => <option key={m.id} value={m.name}>{m.name}</option>)}
