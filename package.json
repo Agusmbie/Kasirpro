@@ -1,0 +1,16 @@
+{
+  "name": "kasir-pro",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Aplikasi POS (Kasir & Manajemen Stok) berdasarkan kasir-prd.md",
+  "scripts": {
+    "setup:db": "cd server && npm run setup:db",
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "build": "npm run build --prefix client",
+    "start": "npm run start --prefix server",
+    "test": "npm test --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

@@ -1,0 +1,2 @@
+ALTER TABLE products ADD COLUMN type VARCHAR(100) NULL AFTER category_id;
+ALTER TABLE products ADD COLUMN model VARCHAR(100) NULL AFTER type;

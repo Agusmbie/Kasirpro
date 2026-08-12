@@ -1,0 +1,1 @@
+ALTER TABLE products ADD COLUMN image MEDIUMTEXT NULL AFTER model;
