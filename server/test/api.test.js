@@ -213,7 +213,47 @@ describe('Pembelian (Stok Masuk)', () => {
     const poMut = mut.body.find((m) => m.reference_type === 'purchase' && m.qty_change === 10);
     assert.ok(poMut);
   });
+
+  test('PO bisa diedit: stok & total diperbarui', async () => {
+    const token = await login('admin@kasir.test', 'admin123');
+    const prodA = await productBySku(token, 'SJ-001');
+    const prodB = await productBySku(token, 'SJ-002');
+
+    const po = await request(app)
+      .post('/api/purchase-orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [{ product_id: prodA.id, qty: 2, purchase_price: 1000 }] });
+    assert.equal(po.status, 201);
+    assert.equal((await productBySku(token, 'SJ-001')).current_stock, prodA.current_stock + 2);
+
+    const put = await request(app)
+      .put(`/api/purchase-orders/${po.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [
+        { product_id: prodA.id, qty: 1, purchase_price: 1000 },
+        { product_id: prodB.id, qty: 3, purchase_price: 500 },
+      ] });
+    assert.equal(put.status, 200);
+    assert.equal(Number(put.body.total_amount), 2500);
+    assert.equal((await productBySku(token, 'SJ-001')).current_stock, prodA.current_stock + 1);
+    assert.equal((await productBySku(token, 'SJ-002')).current_stock, prodB.current_stock + 3);
+
+    const detail = await request(app).get(`/api/purchase-orders/${po.body.id}`).set('Authorization', `Bearer ${token}`);
+    assert.equal(detail.body.items.length, 2);
+
+    const del = await request(app).delete(`/api/purchase-orders/${po.body.id}`).set('Authorization', `Bearer ${token}`);
+    assert.equal(del.status, 200);
+    assert.equal((await productBySku(token, 'SJ-001')).current_stock, prodA.current_stock);
+    assert.equal((await productBySku(token, 'SJ-002')).current_stock, prodB.current_stock);
+  });
+
+  test('kasir tidak boleh edit/hapus PO -> 403', async () => {
+    const token = await login('kasir@kasir.test', 'kasir123');
+    assert.equal((await request(app).put('/api/purchase-orders/1').set('Authorization', `Bearer ${token}`).send({ items: [{ product_id: 1, qty: 1 }] })).status, 403);
+    assert.equal((await request(app).delete('/api/purchase-orders/1').set('Authorization', `Bearer ${token}`)).status, 403);
+  });
 });
+
 
 describe('Tambah Stok Cepat (adjustment)', () => {
   test('admin menambah stok: stok naik & mutasi adjustment tercatat', async () => {

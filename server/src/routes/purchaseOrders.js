@@ -99,4 +99,97 @@ router.post('/', wrap(async (req, res) => {
   }
 }));
 
+router.put('/:id', wrap(async (req, res) => {
+  const id = Number(req.params.id);
+  const { supplier_id, transaction_date, notes, items } = req.body || {};
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new AppError(400, 'Items minimal 1 produk');
+  }
+  const date = transaction_date || formatLocalDate();
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [poRows] = await conn.query('SELECT id FROM purchase_orders WHERE id = ?', [id]);
+    if (poRows.length === 0) throw new AppError(404, 'Purchase order tidak ditemukan');
+
+    const [oldItems] = await conn.query('SELECT product_id, qty FROM purchase_order_items WHERE purchase_order_id = ?', [id]);
+    for (const it of oldItems) {
+      await conn.query('UPDATE products SET current_stock = current_stock - ? WHERE id = ?', [it.qty, it.product_id]);
+    }
+
+    const prepared = [];
+    let total = 0;
+    for (const it of items) {
+      const productId = Number(it.product_id);
+      const qty = Number(it.qty);
+      if (!productId || !Number.isInteger(qty) || qty <= 0) {
+        throw new AppError(400, 'Item tidak valid: product_id dan qty > 0 wajib diisi');
+      }
+      const [prod] = await conn.query(
+        'SELECT id, purchase_price FROM products WHERE id = ? AND deleted_at IS NULL',
+        [productId]
+      );
+      if (prod.length === 0) throw new AppError(404, `Produk id ${productId} tidak ditemukan`);
+      const price = it.purchase_price != null ? Number(it.purchase_price) : Number(prod[0].purchase_price);
+      prepared.push({ productId, qty, price });
+      total += qty * price;
+    }
+
+    await conn.query(
+      'UPDATE purchase_orders SET supplier_id=?, transaction_date=?, total_amount=?, notes=? WHERE id=?',
+      [supplier_id || null, date, total, notes || null, id]
+    );
+    await conn.query('DELETE FROM purchase_order_items WHERE purchase_order_id = ?', [id]);
+    await conn.query(`DELETE FROM stock_mutations WHERE reference_type = 'purchase' AND reference_id = ?`, [id]);
+
+    const [[poInfo]] = await conn.query('SELECT invoice_no FROM purchase_orders WHERE id = ?', [id]);
+    for (const p of prepared) {
+      await conn.query(
+        `INSERT INTO purchase_order_items (purchase_order_id, product_id, qty, purchase_price) VALUES (?,?,?,?)`,
+        [id, p.productId, p.qty, p.price]
+      );
+      await conn.query('UPDATE products SET current_stock = current_stock + ? WHERE id = ?', [p.qty, p.productId]);
+      const [after] = await conn.query('SELECT current_stock FROM products WHERE id = ?', [p.productId]);
+      await conn.query(
+        `INSERT INTO stock_mutations (product_id, reference_type, reference_id, qty_change, stock_after, description)
+         VALUES (?, 'purchase', ?, ?, ?, ?)`,
+        [p.productId, id, p.qty, after[0].current_stock, `Pembelian ${poInfo.invoice_no}`]
+      );
+    }
+
+    await conn.commit();
+    res.json({ ok: true, id, invoice_no: poInfo.invoice_no, total_amount: total });
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
+}));
+
+router.delete('/:id', wrap(async (req, res) => {
+  const id = Number(req.params.id);
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [poRows] = await conn.query('SELECT id FROM purchase_orders WHERE id = ?', [id]);
+    if (poRows.length === 0) throw new AppError(404, 'Purchase order tidak ditemukan');
+
+    const [oldItems] = await conn.query('SELECT product_id, qty FROM purchase_order_items WHERE purchase_order_id = ?', [id]);
+    for (const it of oldItems) {
+      await conn.query('UPDATE products SET current_stock = current_stock - ? WHERE id = ?', [it.qty, it.product_id]);
+    }
+    await conn.query('DELETE FROM purchase_order_items WHERE purchase_order_id = ?', [id]);
+    await conn.query(`DELETE FROM stock_mutations WHERE reference_type = 'purchase' AND reference_id = ?`, [id]);
+    await conn.query('DELETE FROM purchase_orders WHERE id = ?', [id]);
+    await conn.commit();
+    res.json({ ok: true });
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
+}));
+
 export default router;
