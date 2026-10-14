@@ -7,7 +7,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState('Debug info: Cek di bawah untuk email terakhir');
   const [loading, setLoading] = useState(false);
 
   async function submit(e) {
@@ -29,8 +29,10 @@ export default function Login() {
     <div className="min-vh-100 d-flex align-items-center justify-content-center bg-dark">
       <div className="card pos-card p-4 w-100" style={{ maxWidth: 380 }}>
         <h4 className="text-center mb-1"><i className="bi bi-shop me-2" />KasPro</h4>
-        <p className="text-center text-muted small mb-4">Kasir & Manajemen Stok</p>
-        {error && <div className="alert alert-danger py-2">{error}</div>}
+        {error && <div className="alert alert-warning py-2 small">{error}</div>}
+        <div className="alert alert-info py-2 small">
+            User di Browser: {localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).email : 'Tidak ditemukan'}
+        </div>
         <form onSubmit={submit}>
           <div className="mb-3">
             <label className="form-label">Email</label>
@@ -51,29 +53,14 @@ export default function Login() {
                 type="button"
                 className="btn btn-outline-secondary"
                 tabIndex="-1"
-                aria-label={showPassword ? 'Sembunyikan sandi' : 'Tampilkan sandi'}
                 onClick={() => setShowPassword((v) => !v)}
               >
                 <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} />
               </button>
             </div>
           </div>
-                    <button className="btn btn-success w-100" disabled={loading}>
+          <button className="btn btn-success w-100" disabled={loading}>
             {loading ? 'Memproses...' : 'Masuk'}
-          </button>
-          <button 
-            type="button" 
-            className="btn btn-link w-100 mt-2 text-decoration-none text-muted" 
-            onClick={async () => {
-              try {
-                const users = await api('/users', { auth: true });
-                alert('Email terdaftar: ' + users.map(u => u.email).join(', '));
-              } catch (e) {
-                alert('Tidak bisa mengambil data: ' + e.message);
-              }
-            }}
-          >
-            Lupa Sandi?
           </button>
         </form>
       </div>
