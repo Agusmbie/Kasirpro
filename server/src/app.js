@@ -19,7 +19,16 @@ const app = express();
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || true }));
 app.use(express.json({ limit: '2mb' }));
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
+app.get('/api/health', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT email FROM users');
+    res.json(rows);
+  } catch (e) {
+    res.json({ error: e.message });
+  }
+});
+
 
 app.use('/api', authRoutes);
 app.use('/api/users', userRoutes);
