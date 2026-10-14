@@ -58,8 +58,22 @@ export default function Login() {
               </button>
             </div>
           </div>
-          <button className="btn btn-success w-100" disabled={loading}>
+                    <button className="btn btn-success w-100" disabled={loading}>
             {loading ? 'Memproses...' : 'Masuk'}
+          </button>
+          <button 
+            type="button" 
+            className="btn btn-link w-100 mt-2 text-decoration-none text-muted" 
+            onClick={async () => {
+              try {
+                const users = await api('/users', { auth: true });
+                alert('Email terdaftar: ' + users.map(u => u.email).join(', '));
+              } catch (e) {
+                alert('Tidak bisa mengambil data: ' + e.message);
+              }
+            }}
+          >
+            Lupa Sandi?
           </button>
         </form>
       </div>
