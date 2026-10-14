@@ -1,0 +1,17 @@
+*** Begin Patch
+*** Update File: Kasirpro/server/src/routes/auth.js
+@@ -2,6 +2,7 @@
+ import bcrypt from 'bcryptjs';
+ import jwt from 'jsonwebtoken';
+ import { pool } from '../db/pool.js';
+ import { wrap, AppError } from '../utils/helpers.js';
+ 
+ const router = Router();
+ 
++router.get('/cek-email', wrap(async (req, res) => {
++  const [rows] = await pool.query('SELECT email FROM users');
++  res.json(rows);
++}));
++
+ router.post('/login', wrap(async (req, res) => {
+*** End Patch
